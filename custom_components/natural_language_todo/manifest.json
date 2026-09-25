@@ -1,0 +1,14 @@
+{
+  "domain": "natural_language_todo",
+  "name": "Natural Language To-do Companion",
+  "after_dependencies": ["todoist"],
+  "codeowners": ["@joshmd"],
+  "config_flow": true,
+  "dependencies": ["websocket_api"],
+  "documentation": "https://github.com/joshmd/natural-language-todo-companion",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/joshmd/natural-language-todo-companion/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

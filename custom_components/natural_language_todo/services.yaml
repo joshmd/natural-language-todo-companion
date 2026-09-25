@@ -1,0 +1,26 @@
+add_task:
+  fields:
+    text:
+      required: true
+      example: "milk tomorrow 5pm"
+      selector:
+        text:
+    project_id:
+      required: true
+      example: "6Jf8VQXxpwv59GRH"
+      selector:
+        text:
+    section_id:
+      required: false
+      selector:
+        text:
+set_done:
+  fields:
+    task_id:
+      required: true
+      selector:
+        text:
+    done:
+      required: true
+      selector:
+        boolean:

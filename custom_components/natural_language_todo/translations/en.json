@@ -1,0 +1,80 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Todoist",
+        "description": "Use the Todoist integration you already have, or enter an API token.",
+        "data": { "source": "Todoist account" }
+      },
+      "token": {
+        "title": "Todoist API token",
+        "description": "In Todoist, go to Settings → Integrations → Developer and copy your API token.",
+        "data": { "token": "API token" }
+      },
+      "projects": {
+        "title": "Choose projects",
+        "description": "Only the projects you tick are synced into Home Assistant.",
+        "data": { "projects": "Projects" }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to Todoist",
+        "description": "Todoist no longer accepts the token this integration was using. Choose an account again, or enter a new API token.",
+        "data": { "source": "Todoist account" }
+      }
+    },
+    "error": {
+      "invalid_auth": "Todoist didn't accept that token.",
+      "cannot_connect": "Couldn't reach Todoist. Try again in a moment.",
+      "no_projects": "Tick at least one project."
+    },
+    "abort": {
+      "already_configured": "This Todoist account is already set up.",
+      "reauth_successful": "Reconnected to Todoist.",
+      "wrong_account": "That token belongs to a different Todoist account."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Natural Language To-do Companion",
+        "data": {
+          "projects": "Projects",
+          "show_completed": "Sync completed tasks from the last 7 days",
+          "admin_only": "Only administrators can change tasks",
+          "scan_interval": "Refresh every"
+        },
+        "data_description": {
+          "admin_only": "When on, other users can see the lists but can't add, complete or reopen tasks. Automations are not affected.",
+          "scan_interval": "How often to check Todoist for changes made elsewhere. Changes made in the card show straight away."
+        }
+      }
+    },
+    "error": {
+      "no_projects": "Tick at least one project."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "open_tasks": { "name": "Open tasks" }
+    }
+  },
+  "services": {
+    "add_task": {
+      "name": "Add task",
+      "description": "Adds a task with Todoist's Quick Add parser, then files it in a project and section.",
+      "fields": {
+        "text": { "name": "Text", "description": "The task, in natural language. Dates, repeats, @labels and p1–p4 are understood." },
+        "project_id": { "name": "Project ID", "description": "A project set up in this integration." },
+        "section_id": { "name": "Section ID", "description": "A section in that project. Optional." }
+      }
+    },
+    "set_done": {
+      "name": "Complete or reopen task",
+      "description": "Completes or reopens a task in a project set up in this integration.",
+      "fields": {
+        "task_id": { "name": "Task ID", "description": "The Todoist task ID." },
+        "done": { "name": "Done", "description": "On to complete, off to reopen." }
+      }
+    }
+  }
+}
