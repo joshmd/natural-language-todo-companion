@@ -24,5 +24,7 @@ jobs:
       - uses: hacs/action@1ebf01c408f29afcb6406bd431bc98fd8cbb15aa # main, 2026-09
         with:
           category: integration
-          # Needs an icon in home-assistant/brands; added separately.
+          # The icon ships in custom_components/natural_language_todo/brand/
+          # (Home Assistant 2026.3+); the brands repository no longer takes
+          # custom integrations, so its check doesn't apply.
           ignore: brands
