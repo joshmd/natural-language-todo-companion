@@ -38,8 +38,8 @@ def _path_id(value: Any) -> str:
 class TodoistClient:
     """Talks to api.todoist.com with a token fetched on every request.
 
-    get_token is called each time so a token changed in the core Todoist
-    integration is picked up without restarting.
+    get_token is called for each request, so a token replaced through
+    reauthentication is used straight away.
     """
 
     def __init__(

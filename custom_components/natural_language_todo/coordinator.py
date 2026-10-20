@@ -21,46 +21,36 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SHOW_COMPLETED,
     CONF_SOURCE,
-    CONF_TODOIST_ENTRY_ID,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
-    SOURCE_TODOIST_ENTRY,
+    SOURCE_LEGACY_TODOIST_ENTRY,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-TODOIST_DOMAIN = "todoist"
-
-
 class TokenUnavailable(ConfigEntryAuthFailed):
-    """The token this entry relies on can't be found."""
+    """This entry has no token of its own."""
 
 
-def token_getter(hass: HomeAssistant, entry: ConfigEntry):
-    """Return an async function that reads the token when it is needed.
+def token_getter(entry: ConfigEntry):
+    """Return an async function giving this entry's own token.
 
-    With SOURCE_TODOIST_ENTRY the token is read from the core Todoist
-    integration's entry each time, never copied into this entry.
+    Only a token entered in this integration's config flow is used. Entries
+    from before 0.2 that pointed at the core Todoist integration have none,
+    so they start a reauth flow asking for one.
     """
 
     async def get_token() -> str:
-        if entry.data.get(CONF_SOURCE) == SOURCE_TODOIST_ENTRY:
-            core = hass.config_entries.async_get_entry(entry.data.get(CONF_TODOIST_ENTRY_ID, ""))
-            if core is None or core.domain != TODOIST_DOMAIN or not core.data.get(CONF_TOKEN):
-                raise TokenUnavailable(
-                    "The Todoist integration this uses has been removed. Enter an API token instead."
-                )
-            return core.data[CONF_TOKEN]
         token = entry.data.get(CONF_TOKEN)
-        if not token:
-            raise TokenUnavailable("No Todoist API token is set.")
+        if entry.data.get(CONF_SOURCE) == SOURCE_LEGACY_TODOIST_ENTRY or not token:
+            raise TokenUnavailable("Enter a Todoist API token for this integration.")
         return token
 
     return get_token
 
 
 def make_client(hass: HomeAssistant, entry: ConfigEntry) -> TodoistClient:
-    return TodoistClient(async_get_clientsession(hass), token_getter(hass, entry))
+    return TodoistClient(async_get_clientsession(hass), token_getter(entry))
 
 
 # Only the fields the card needs leave this integration.

@@ -19,9 +19,9 @@ from custom_components.natural_language_todo.const import (
     CONF_SCAN_INTERVAL,
     CONF_SHOW_COMPLETED,
     CONF_SOURCE,
-    CONF_TODOIST_ENTRY_ID,
     DOMAIN,
-    SOURCE_TODOIST_ENTRY,
+    SOURCE_LEGACY_TODOIST_ENTRY,
+    SOURCE_TOKEN,
 )
 
 pytest_plugins = "pytest_homeassistant_custom_component"
@@ -37,7 +37,7 @@ def auto_enable_custom_integrations(enable_custom_integrations):
 
 class FakeTodoist:
     def __init__(self) -> None:
-        self.valid_tokens = {"core-token", "new-token"}
+        self.valid_tokens = {"core-token", "own-token", "new-token"}
         self.user = {"id": "4242", "full_name": "Test"}
         self.projects = [{"id": SHOP, "name": "Shopping"}, {"id": WORK, "name": "Work"}]
         self.sections = {
@@ -125,19 +125,37 @@ def todoist(aioclient_mock) -> FakeTodoist:
 
 @pytest.fixture
 def core_entry(hass) -> MockConfigEntry:
+    """The core Todoist integration's entry. The companion must never read it."""
     entry = MockConfigEntry(domain="todoist", data={CONF_TOKEN: "core-token"}, title="Todoist", state=ConfigEntryState.LOADED)
     entry.add_to_hass(hass)
     return entry
 
 
+OPTIONS = {CONF_PROJECTS: [SHOP], CONF_SHOW_COMPLETED: True, CONF_ADMIN_ONLY: False, CONF_SCAN_INTERVAL: 60}
+
+
 @pytest.fixture
-def entry(hass, core_entry) -> MockConfigEntry:
+def entry(hass) -> MockConfigEntry:
     e = MockConfigEntry(
         domain=DOMAIN,
         title="Todoist",
         unique_id="4242",
-        data={CONF_SOURCE: SOURCE_TODOIST_ENTRY, CONF_TODOIST_ENTRY_ID: core_entry.entry_id},
-        options={CONF_PROJECTS: [SHOP], CONF_SHOW_COMPLETED: True, CONF_ADMIN_ONLY: False, CONF_SCAN_INTERVAL: 60},
+        data={CONF_SOURCE: SOURCE_TOKEN, CONF_TOKEN: "own-token"},
+        options=OPTIONS,
+    )
+    e.add_to_hass(hass)
+    return e
+
+
+@pytest.fixture
+def legacy_entry(hass, core_entry) -> MockConfigEntry:
+    """An entry made by 0.1, which pointed at the core Todoist integration."""
+    e = MockConfigEntry(
+        domain=DOMAIN,
+        title="Todoist",
+        unique_id="4242",
+        data={CONF_SOURCE: SOURCE_LEGACY_TODOIST_ENTRY, "todoist_entry_id": core_entry.entry_id},
+        options=OPTIONS,
     )
     e.add_to_hass(hass)
     return e

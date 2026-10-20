@@ -1,8 +1,7 @@
 """Natural Language To-do companion.
 
 Syncs chosen Todoist projects, with their sections, for the Natural
-Language To-do Card. Reuses the core Todoist integration's connection, or
-a token entered here.
+Language To-do Card, using a Todoist API token entered in its own setup.
 """
 
 from __future__ import annotations

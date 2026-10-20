@@ -9,11 +9,13 @@ DOMAIN: Final = "natural_language_todo"
 
 API_BASE: Final = "https://api.todoist.com/api/v1"
 
-# How the entry gets its Todoist token.
+# The token is always one entered in this integration's own setup.
 CONF_SOURCE: Final = "source"
-SOURCE_TODOIST_ENTRY: Final = "todoist_entry"  # reuse the core Todoist integration
-SOURCE_TOKEN: Final = "token"  # token entered in this integration
-CONF_TODOIST_ENTRY_ID: Final = "todoist_entry_id"
+SOURCE_TOKEN: Final = "token"
+# Before 0.2 an entry could point at the core Todoist integration's entry
+# instead. Such entries are asked for their own token (reauth); the core
+# integration's credentials are never read.
+SOURCE_LEGACY_TODOIST_ENTRY: Final = "todoist_entry"
 
 # Options.
 CONF_PROJECTS: Final = "projects"

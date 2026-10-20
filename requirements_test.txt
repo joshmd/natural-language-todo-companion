@@ -1,3 +1,4 @@
 pytest-homeassistant-custom-component
-# The core Todoist integration, loaded in tests that reuse its connection.
+# Tests put a core Todoist entry alongside to prove its token is never read;
+# Home Assistant loads that integration, which needs its library.
 todoist-api-python==3.1.0

@@ -10,15 +10,15 @@ A Home Assistant integration that brings **Todoist sections** to the [Natural La
 Home Assistant's own Todoist integration shows each project as a to-do list, but it drops sections. This companion syncs the projects you choose, with their sections, and adds tasks with **Todoist's own Quick Add parser**, so `milk tomorrow 5pm /Bakery @shop p1` works exactly as it does in the Todoist app.
 
 - **Set up in the UI.** Everything is done in **Settings → Devices & services**. There's no YAML to edit.
-- **Reuses your Todoist connection.** If the Todoist integration is already set up, the companion uses it, so there's no token to paste.
 - **Only syncs what you choose.** Tick the projects you want. Nothing else from your Todoist account comes into Home Assistant.
+- **Works alongside the Todoist integration.** Keep it for voice assistants and automations; the companion has its own connection and doesn't touch it.
 
 ## Requirements
 
 - Home Assistant **2026.1** or newer (tested on 2026.2 and 2026.9)
 - [HACS](https://hacs.xyz)
 - The [Natural Language To-do Card](https://github.com/joshmd/natural-language-Todo) **v0.3** or newer
-- A Todoist account. The core [Todoist integration](https://www.home-assistant.io/integrations/todoist/) is recommended, but you can enter an API token instead
+- A Todoist API token: in Todoist, go to **Settings → Integrations → Developer** and copy it
 
 ## Install
 
@@ -43,12 +43,18 @@ Home Assistant's own Todoist integration shows each project as a to-do list, but
 ## Set up
 
 1. Go to **Settings → Devices & services → Add integration** and search for **Natural Language To-do Companion**.
-2. Choose **Use my Todoist integration**. If you don't have the Todoist integration, paste an API token instead, from Todoist → **Settings → Integrations → Developer**.
+2. Paste your Todoist API token.
 3. Tick the projects you want on your dashboard and select **Submit**.
 
 Each project appears as a device, with an **Open tasks** sensor you can use in automations.
 
 To add or remove projects later, open the integration and select **Configure**.
+
+## Updating from version 0.1
+
+Version 0.1 borrowed the Todoist integration's connection. Home Assistant's rules for integrations don't allow one integration to use another's stored credentials, so from version 0.2 the companion has its own.
+
+After updating, Home Assistant shows **Reconnect to Todoist** once. Open it, paste your Todoist API token (Todoist → **Settings → Integrations → Developer**), and submit. Your projects and settings are kept.
 
 ## Use it in the card
 
@@ -88,7 +94,7 @@ Both only work on tasks in projects you've ticked.
 
 ## Privacy and security
 
-- **Your token stays on the server.** With **Use my Todoist integration**, the token is read from that integration each time it's needed and never copied. A pasted token is stored like any other integration's credentials. It's never sent to the browser, and the diagnostics download removes it.
+- **Your token stays on the server.** It's stored like any other integration's credentials, never sent to the browser, and removed from the diagnostics download. The companion only uses the token you give it, never another integration's.
 - **Only ticked projects are synced.** Other projects are never fetched.
 - **Only what the card needs leaves the integration:** task text, section, due date and order. Descriptions, comments and assignees are never sent to dashboards. The sensors hold a count only, so no task text is stored in Home Assistant's history.
 - **Changes are limited to ticked projects.** The actions refuse tasks and sections outside them, and only accept well-formed Todoist IDs, so no request can reach another part of the Todoist API.
@@ -98,7 +104,7 @@ Both only work on tasks in projects you've ticked.
 
 | Symptom | Fix |
 |---|---|
-| "Reconnect to Todoist" in notifications | Todoist no longer accepts the token, or the Todoist integration was removed. Follow the prompt to choose an account or paste a new token. |
+| "Reconnect to Todoist" in notifications | Todoist no longer accepts the token, or you've just updated from version 0.1. Follow the prompt and paste an API token. |
 | The card says a project "isn't ticked" | Tick it under **Configure**. |
 | The card says the companion is needed | Install this integration, restart, then set it up. |
 

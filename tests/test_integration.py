@@ -18,9 +18,7 @@ from custom_components.natural_language_todo.const import (
     CONF_ADMIN_ONLY,
     CONF_PROJECTS,
     CONF_SOURCE,
-    CONF_TODOIST_ENTRY_ID,
     DOMAIN,
-    SOURCE_TODOIST_ENTRY,
     SOURCE_TOKEN,
 )
 
@@ -34,38 +32,57 @@ def paths(todoist):
 # ---- config flow -------------------------------------------------------------
 
 
-async def test_flow_reuses_core_todoist_connection(hass: HomeAssistant, core_entry, todoist):
+async def test_flow_asks_for_a_token_even_with_core_todoist(hass: HomeAssistant, core_entry, todoist):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
     assert result["step_id"] == "user"
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_SOURCE: core_entry.entry_id})
-    assert result["step_id"] == "projects"
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_PROJECTS: [SHOP]})
-    assert result["type"] is FlowResultType.CREATE_ENTRY
-    assert result["data"] == {CONF_SOURCE: SOURCE_TODOIST_ENTRY, CONF_TODOIST_ENTRY_ID: core_entry.entry_id}
-    assert CONF_TOKEN not in result["data"], "token is not copied"
-    assert result["options"][CONF_PROJECTS] == [SHOP]
-    assert result["options"][CONF_ADMIN_ONLY] is False
-    assert result["result"].unique_id == "4242"
-
-
-async def test_flow_with_token_and_bad_token(hass: HomeAssistant, todoist):
-    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
-    assert result["step_id"] == "token", "no core Todoist entry: straight to the token"
+    assert list(result["data_schema"].schema) == [CONF_TOKEN], "no option to borrow another integration's token"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: "wrong"})
     assert result["errors"] == {"base": "invalid_auth"}
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: " new-token "})
+    assert result["step_id"] == "projects"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_PROJECTS: []})
     assert result["errors"] == {"base": "no_projects"}
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_PROJECTS: [SHOP]})
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["data"] == {CONF_SOURCE: SOURCE_TOKEN, CONF_TOKEN: "new-token"}
+    assert result["options"][CONF_PROJECTS] == [SHOP]
+    assert result["options"][CONF_ADMIN_ONLY] is False
+    assert result["result"].unique_id == "4242"
+    assert all(c[3] != "Bearer core-token" for c in todoist.calls), "core token never used"
 
 
-async def test_flow_refuses_same_account_twice(hass: HomeAssistant, entry, core_entry, todoist):
+async def test_flow_refuses_same_account_twice(hass: HomeAssistant, entry, todoist):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": config_entries.SOURCE_USER})
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_SOURCE: core_entry.entry_id})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: "new-token"})
     assert result["type"] is FlowResultType.ABORT
     assert result["reason"] == "already_configured"
+
+
+async def test_pre_0_2_entry_asks_for_its_own_token(hass: HomeAssistant, legacy_entry, core_entry, todoist):
+    """A 0.1 entry that borrowed the core token must not read it: it reauths."""
+    assert not await hass.config_entries.async_setup(legacy_entry.entry_id)
+    await hass.async_block_till_done()
+    assert legacy_entry.state is ConfigEntryState.SETUP_ERROR
+    assert todoist.calls == [], "nothing sent to Todoist, so the core token was never read"
+    flows = [f for f in hass.config_entries.flow.async_progress_by_handler(DOMAIN) if f["context"]["source"] == "reauth"]
+    assert len(flows) == 1
+    result = await hass.config_entries.flow.async_configure(flows[0]["flow_id"], {CONF_TOKEN: "own-token"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reauth_successful"
+    await hass.async_block_till_done()
+    assert dict(legacy_entry.data) == {CONF_SOURCE: SOURCE_TOKEN, CONF_TOKEN: "own-token"}
+    assert legacy_entry.options[CONF_PROJECTS] == [SHOP], "projects and settings kept"
+    assert legacy_entry.state is ConfigEntryState.LOADED
+    assert all(c[3] == "Bearer own-token" for c in todoist.calls)
+
+
+async def test_reauth_refuses_a_different_account(hass: HomeAssistant, loaded, todoist):
+    todoist.user = {"id": "9999"}
+    result = await loaded.start_reauth_flow(hass)
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {CONF_TOKEN: "new-token"})
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "wrong_account"
+    assert loaded.data[CONF_TOKEN] == "own-token"
 
 
 async def test_options_flow_changes_projects(hass: HomeAssistant, loaded, todoist):
@@ -106,11 +123,10 @@ async def test_devices_and_count_sensor(hass: HomeAssistant, loaded):
     assert "tasks" not in states[0].attributes and "results" not in states[0].attributes
 
 
-async def test_token_is_read_from_core_entry_each_time(hass: HomeAssistant, loaded, core_entry, todoist):
-    hass.config_entries.async_update_entry(core_entry, data={CONF_TOKEN: "new-token"})
-    todoist.calls.clear()
-    await loaded.runtime_data.async_refresh()
-    assert todoist.calls and all(c[3] == "Bearer new-token" for c in todoist.calls)
+async def test_requests_use_only_the_entrys_own_token(hass: HomeAssistant, entry, core_entry, todoist):
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert todoist.calls and all(c[3] == "Bearer own-token" for c in todoist.calls)
 
 
 async def test_rejected_token_starts_reauth(hass: HomeAssistant, loaded, todoist):
@@ -121,15 +137,7 @@ async def test_rejected_token_starts_reauth(hass: HomeAssistant, loaded, todoist
     assert any(f["context"]["source"] == "reauth" for f in flows)
 
 
-async def test_removed_core_entry_starts_reauth(hass: HomeAssistant, loaded, core_entry, todoist):
-    await hass.config_entries.async_remove(core_entry.entry_id)
-    await loaded.runtime_data.async_refresh()
-    await hass.async_block_till_done()
-    flows = hass.config_entries.flow.async_progress_by_handler(DOMAIN)
-    assert any(f["context"]["source"] == "reauth" for f in flows)
-
-
-async def test_diagnostics_redacts_token(hass: HomeAssistant, core_entry, todoist):
+async def test_diagnostics_redacts_token(hass: HomeAssistant, todoist):
     from custom_components.natural_language_todo.diagnostics import async_get_config_entry_diagnostics
 
     e = MockConfigEntry(

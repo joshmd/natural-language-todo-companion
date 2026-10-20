@@ -3,23 +3,24 @@
     "step": {
       "user": {
         "title": "Connect to Todoist",
-        "description": "Use the Todoist integration you already have, or enter an API token.",
-        "data": { "source": "Todoist account" }
-      },
-      "token": {
-        "title": "Todoist API token",
-        "description": "In Todoist, go to Settings → Integrations → Developer and copy your API token.",
-        "data": { "token": "API token" }
+        "description": "Paste your Todoist API token. In Todoist, go to Settings → Integrations → Developer and copy it.",
+        "data": {
+          "token": "API token"
+        }
       },
       "projects": {
         "title": "Choose projects",
         "description": "Only the projects you tick are synced into Home Assistant.",
-        "data": { "projects": "Projects" }
+        "data": {
+          "projects": "Projects"
+        }
       },
       "reauth_confirm": {
         "title": "Reconnect to Todoist",
-        "description": "Todoist no longer accepts the token this integration was using. Choose an account again, or enter a new API token.",
-        "data": { "source": "Todoist account" }
+        "description": "Paste a Todoist API token for this integration. This is needed if Todoist stopped accepting the previous token, or if you set this up before version 0.2, when it borrowed the Todoist integration's connection.",
+        "data": {
+          "token": "API token"
+        }
       }
     },
     "error": {
@@ -55,7 +56,9 @@
   },
   "entity": {
     "sensor": {
-      "open_tasks": { "name": "Open tasks" }
+      "open_tasks": {
+        "name": "Open tasks"
+      }
     }
   },
   "services": {
@@ -63,17 +66,32 @@
       "name": "Add task",
       "description": "Adds a task with Todoist's Quick Add parser, then files it in a project and section.",
       "fields": {
-        "text": { "name": "Text", "description": "The task, in natural language. Dates, repeats, @labels and p1–p4 are understood." },
-        "project_id": { "name": "Project ID", "description": "A project set up in this integration." },
-        "section_id": { "name": "Section ID", "description": "A section in that project. Optional." }
+        "text": {
+          "name": "Text",
+          "description": "The task, in natural language. Dates, repeats, @labels and p1–p4 are understood."
+        },
+        "project_id": {
+          "name": "Project ID",
+          "description": "A project set up in this integration."
+        },
+        "section_id": {
+          "name": "Section ID",
+          "description": "A section in that project. Optional."
+        }
       }
     },
     "set_done": {
       "name": "Complete or reopen task",
       "description": "Completes or reopens a task in a project set up in this integration.",
       "fields": {
-        "task_id": { "name": "Task ID", "description": "The Todoist task ID." },
-        "done": { "name": "Done", "description": "On to complete, off to reopen." }
+        "task_id": {
+          "name": "Task ID",
+          "description": "The Todoist task ID."
+        },
+        "done": {
+          "name": "Done",
+          "description": "On to complete, off to reopen."
+        }
       }
     }
   }

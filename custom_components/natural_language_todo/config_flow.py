@@ -8,8 +8,8 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import (
+    SOURCE_REAUTH,
     ConfigEntry,
-    ConfigEntryState,
     ConfigFlow,
     ConfigFlowResult,
     OptionsFlowWithReload,
@@ -38,29 +38,18 @@ from .const import (
     CONF_SCAN_INTERVAL,
     CONF_SHOW_COMPLETED,
     CONF_SOURCE,
-    CONF_TODOIST_ENTRY_ID,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
-    SOURCE_TODOIST_ENTRY,
     SOURCE_TOKEN,
 )
-from .coordinator import TODOIST_DOMAIN
 
 DEFAULT_OPTIONS = {
     CONF_SHOW_COMPLETED: True,
     CONF_ADMIN_ONLY: False,
     CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
 }
-
-
-def _todoist_entries(hass: HomeAssistant) -> list[ConfigEntry]:
-    return [
-        e
-        for e in hass.config_entries.async_entries(TODOIST_DOMAIN)
-        if e.state is ConfigEntryState.LOADED and e.data.get(CONF_TOKEN)
-    ]
 
 
 def _client(hass: HomeAssistant, token: str) -> TodoistClient:
@@ -81,38 +70,24 @@ def _project_selector(projects: list[dict]) -> SelectSelector:
 
 
 class NLTodoConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Asks for a Todoist API token, then which projects to sync.
+
+    The token is always entered here. This integration never reads another
+    integration's stored credentials.
+    """
+
     VERSION = 1
 
     def __init__(self) -> None:
         self._data: dict[str, Any] = {}
         self._projects: list[dict] = []
 
-    # ---- choosing where the token comes from -----------------------------
-
-    def _source_schema(self) -> vol.Schema:
-        options = [
-            SelectOptionDict(value=e.entry_id, label=f"Use my Todoist integration ({e.title})")
-            for e in _todoist_entries(self.hass)
-        ]
-        options.append(SelectOptionDict(value=SOURCE_TOKEN, label="Enter a Todoist API token"))
-        return vol.Schema(
-            {
-                vol.Required(CONF_SOURCE, default=options[0]["value"]): SelectSelector(
-                    SelectSelectorConfig(options=options, mode=SelectSelectorMode.LIST)
-                )
-            }
-        )
-
-    def _token_schema(self) -> vol.Schema:
+    @staticmethod
+    def _token_schema() -> vol.Schema:
         return vol.Schema({vol.Required(CONF_TOKEN): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD))})
 
-    async def _connect(self, data: dict[str, Any]) -> tuple[dict | None, str | None]:
+    async def _connect(self, token: str) -> tuple[dict | None, str | None]:
         """Check the token works. Returns (user, error key)."""
-        if data[CONF_SOURCE] == SOURCE_TODOIST_ENTRY:
-            core = self.hass.config_entries.async_get_entry(data[CONF_TODOIST_ENTRY_ID])
-            token = core.data.get(CONF_TOKEN) if core else None
-        else:
-            token = data.get(CONF_TOKEN)
         if not token:
             return None, "invalid_auth"
         client = _client(self.hass, token)
@@ -125,40 +100,28 @@ class NLTodoConfigFlow(ConfigFlow, domain=DOMAIN):
             return None, "cannot_connect"
         return user, None
 
+    async def _token_step(self, step_id: str, user_input: dict[str, Any] | None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            token = user_input[CONF_TOKEN].strip()
+            user, error = await self._connect(token)
+            if error:
+                errors["base"] = error
+            else:
+                data = {CONF_SOURCE: SOURCE_TOKEN, CONF_TOKEN: token}
+                await self.async_set_unique_id(str(user.get("id", "")))
+                if self.source == SOURCE_REAUTH:
+                    self._abort_if_unique_id_mismatch(reason="wrong_account")
+                    # Replaces the data outright, dropping any pre-0.2 link to
+                    # the core Todoist integration.
+                    return self.async_update_reload_and_abort(self._get_reauth_entry(), data=data)
+                self._abort_if_unique_id_configured()
+                self._data = data
+                return await self.async_step_projects()
+        return self.async_show_form(step_id=step_id, data_schema=self._token_schema(), errors=errors)
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        if not _todoist_entries(self.hass):
-            return await self.async_step_token()
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            if user_input[CONF_SOURCE] == SOURCE_TOKEN:
-                return await self.async_step_token()
-            data = {CONF_SOURCE: SOURCE_TODOIST_ENTRY, CONF_TODOIST_ENTRY_ID: user_input[CONF_SOURCE]}
-            result = await self._linked(data, errors)
-            if result:
-                return result
-        return self.async_show_form(step_id="user", data_schema=self._source_schema(), errors=errors)
-
-    async def async_step_token(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            data = {CONF_SOURCE: SOURCE_TOKEN, CONF_TOKEN: user_input[CONF_TOKEN].strip()}
-            result = await self._linked(data, errors)
-            if result:
-                return result
-        return self.async_show_form(step_id="token", data_schema=self._token_schema(), errors=errors)
-
-    async def _linked(self, data: dict[str, Any], errors: dict[str, str]) -> ConfigFlowResult | None:
-        user, error = await self._connect(data)
-        if error:
-            errors["base"] = error
-            return None
-        await self.async_set_unique_id(str(user.get("id", "")))
-        if self.source == "reauth":
-            self._abort_if_unique_id_mismatch(reason="wrong_account")
-            return self.async_update_reload_and_abort(self._get_reauth_entry(), data=data)
-        self._abort_if_unique_id_configured()
-        self._data = data
-        return await self.async_step_projects()
+        return await self._token_step("user", user_input)
 
     # ---- choosing projects -------------------------------------------------
 
@@ -182,15 +145,7 @@ class NLTodoConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        errors: dict[str, str] = {}
-        if user_input is not None:
-            if user_input[CONF_SOURCE] == SOURCE_TOKEN:
-                return await self.async_step_token()
-            data = {CONF_SOURCE: SOURCE_TODOIST_ENTRY, CONF_TODOIST_ENTRY_ID: user_input[CONF_SOURCE]}
-            result = await self._linked(data, errors)
-            if result:
-                return result
-        return self.async_show_form(step_id="reauth_confirm", data_schema=self._source_schema(), errors=errors)
+        return await self._token_step("reauth_confirm", user_input)
 
     @staticmethod
     @callback
