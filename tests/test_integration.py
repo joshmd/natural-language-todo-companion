@@ -163,7 +163,8 @@ async def test_subscribe_sends_minimal_project_data(hass: HomeAssistant, loaded,
     assert event["project"] == {"id": SHOP, "name": "Shopping"}
     assert [s["name"] for s in event["sections"]] == ["Fruit", "Bakery"]
     first = event["tasks"][0]
-    assert set(first) == {"id", "content", "section_id", "parent_id", "order", "due", "completed_at"}
+    assert set(first) == {"id", "content", "section_id", "parent_id", "order", "labels", "priority", "due", "completed_at"}
+    assert (first["labels"], first["priority"]) == (["aldi"], 4)
     assert "private notes" not in str(event) and "responsible_uid" not in str(event)
 
     await client.send_json_auto_id({"type": f"{DOMAIN}/projects"})

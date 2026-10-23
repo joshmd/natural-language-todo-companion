@@ -52,7 +52,7 @@ class FakeTodoist:
             SHOP: [
                 {
                     "id": "t1", "project_id": SHOP, "section_id": "sec1", "content": "Bananas", "child_order": 1,
-                    "description": "private notes", "responsible_uid": "99",
+                    "description": "private notes", "responsible_uid": "99", "labels": ["aldi"], "priority": 4,
                     "due": {"date": "2026-09-26", "string": "sat", "is_recurring": False},
                 },
                 {"id": "t2", "project_id": SHOP, "section_id": None, "content": "Milk", "child_order": 2, "due": None},

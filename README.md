@@ -96,7 +96,7 @@ Both only work on tasks in projects you've ticked.
 
 - **Your token stays on the server.** It's stored like any other integration's credentials, never sent to the browser, and removed from the diagnostics download. The companion only uses the token you give it, never another integration's.
 - **Only ticked projects are synced.** Other projects are never fetched.
-- **Only what the card needs leaves the integration:** task text, section, due date and order. Descriptions, comments and assignees are never sent to dashboards. The sensors hold a count only, so no task text is stored in Home Assistant's history.
+- **Only what the card needs leaves the integration:** task text, section, parent task, due date, order, labels and priority. Descriptions, comments and assignees are never sent to dashboards. The sensors hold a count only, so no task text is stored in Home Assistant's history.
 - **Changes are limited to ticked projects.** The actions refuse tasks and sections outside them, and only accept well-formed Todoist IDs, so no request can reach another part of the Todoist API.
 - **Anyone with a Home Assistant login can change tasks,** unless you turn on **Only administrators can change tasks**.
 

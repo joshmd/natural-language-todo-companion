@@ -62,6 +62,9 @@ def _task(t: dict[str, Any], completed: bool = False) -> dict[str, Any]:
         "section_id": str(t["section_id"]) if t.get("section_id") else None,
         "parent_id": str(t["parent_id"]) if t.get("parent_id") else None,
         "order": t.get("child_order"),
+        "labels": [str(label) for label in t.get("labels") or []],
+        # Todoist API priority: 4 is most urgent (P1 in the apps), 1 is none.
+        "priority": t.get("priority") if t.get("priority") in (1, 2, 3, 4) else None,
         "due": {
             "date": due.get("date"),
             "datetime": due.get("datetime"),
