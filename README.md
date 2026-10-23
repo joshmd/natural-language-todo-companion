@@ -1,7 +1,7 @@
 # Natural Language To-do Companion
 
 [![Open your Home Assistant instance and open this repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=joshmd&repository=natural-language-todo-companion&category=integration)
-[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://hacs.xyz)
 [![Validate](https://github.com/joshmd/natural-language-todo-companion/actions/workflows/validate.yml/badge.svg)](https://github.com/joshmd/natural-language-todo-companion/actions/workflows/validate.yml)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?logo=buymeacoffee&logoColor=000000)](https://www.buymeacoffee.com/joshmd)
 
@@ -29,11 +29,7 @@ Home Assistant's own Todoist integration shows each project as a to-do list, but
    <details>
    <summary>If the button does not work</summary>
 
-   1. Open **HACS** in Home Assistant.
-   2. Select the three-dot menu (top right) → **Custom repositories**.
-   3. Repository: `https://github.com/joshmd/natural-language-todo-companion`
-   4. Type: **Integration**
-   5. Select **Add**, then search HACS for **Natural Language To-do Companion**.
+   Open **HACS** in Home Assistant and search for **Natural Language To-do Companion**.
 
    </details>
 
